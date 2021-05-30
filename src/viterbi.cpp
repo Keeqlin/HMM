@@ -197,6 +197,17 @@ std::vector<size_t> Viterbi::decode(std::vector<std::shared_ptr<Observation>> &o
     return hiddenState;
 }
 
+void Viterbi::addHmmStates(std::shared_ptr<Observation> &observationPtr) {
+    auto candidatesPtr = FindCandidateState_(observationPtr);
+
+    Nodes nodes;
+    nodes.candidateVec_.reserve(candidatesPtr.size());
+    for (size_t i = 0; i < candidatesPtr.size(); i++) {
+        nodes.push(candidatesPtr[i]);
+    }
+    hmmStates_.emplace_back(std::move(nodes));
+}
+
 // online decode
 std::vector<size_t> Viterbi::onlineInitialDecode(std::vector<std::shared_ptr<Observation>> &observationPtr) {
     size_t T = observationPtr.size();
@@ -204,13 +215,7 @@ std::vector<size_t> Viterbi::onlineInitialDecode(std::vector<std::shared_ptr<Obs
 
     // add Nodes(candidateState) of each observation
     for (size_t i = 0; i < T; i++) {
-        auto candidatesPtr = FindCandidateState_(observationPtr[i]);
-
-        Nodes nodes;
-        for (size_t i = 0; i < candidatesPtr.size(); i++) {
-            nodes.push(candidatesPtr[i]);
-        }
-        hmmStates_.emplace_back(std::move(nodes));
+        addHmmStates(observationPtr[i]);
     }
 
     // Initialization hmmStates using first Nodes
@@ -221,11 +226,9 @@ std::vector<size_t> Viterbi::onlineInitialDecode(std::vector<std::shared_ptr<Obs
         firstNodes.candidateVec_[i].delta_ = ProbOfEmission_(state_Id, O_1);
     }
 
-    // Recursion
     for (size_t tIdx = 1; tIdx < T; tIdx++) {
         recursion(observationPtr[tIdx], tIdx);
     }
-
     terminationAndBackTracking(hiddenState);
 
     return hiddenState;
@@ -233,18 +236,12 @@ std::vector<size_t> Viterbi::onlineInitialDecode(std::vector<std::shared_ptr<Obs
 
 std::vector<size_t> Viterbi::onlineDecode(std::shared_ptr<Observation> &observationPtr) {
     // add Nodes(candidateState) of lastest observation
-    auto candidatesPtr = FindCandidateState_(observationPtr);
-    Nodes nodes;
-    for (size_t i = 0; i < candidatesPtr.size(); i++) {
-        nodes.push(candidatesPtr[i]);
-    }
-    hmmStates_.emplace_back(std::move(nodes));
+    addHmmStates(observationPtr);
 
     size_t T = hmmStates_.size();
     std::vector<size_t> hiddenState(T, 0);
 
     recursion(observationPtr, T - 1);
-
     terminationAndBackTracking(hiddenState);
     return hiddenState;
 }
@@ -258,6 +255,7 @@ void Viterbi::recursion(std::shared_ptr<Observation> &observationPtr, size_t tId
 
     for (size_t j = 0; j < nodeCurrIter->size(); j++) {
         double maxDelta = 0;
+        // std::shared_ptr<Nodes::Node> psiNodePtr;
         Nodes::Node *psiNodePtr = nullptr;
         size_t currStateId = nodeCurrIter->candidateVec_[j].statePtr_->id_;
         for (size_t i = 0; i < nodePrevIter->size(); i++) {

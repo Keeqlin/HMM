@@ -19,6 +19,11 @@ void showVecPtr(std::vector<T>& Vec, const std::string& name) {
     std::cout << "} " << std::endl;
 }
 
+void move_test(std::string& A) {
+    std::string B = std::move(A);
+    std::cout << "B: " << B << std::endl;
+}
+
 int main() {
     const size_t N = 10;  // number of state
     const size_t M = 5;   // number of observation

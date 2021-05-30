@@ -72,6 +72,7 @@ class Viterbi {
     std::vector<size_t> onlineDecode(std::shared_ptr<Observation> &observationPtr);
 
    private:
+    void addHmmStates(std::shared_ptr<Observation> &observationPtr);
     void recursion(std::shared_ptr<Observation> &observationPtr, size_t tIdx);
     void terminationAndBackTracking(std::vector<size_t> &hiddenState);
 
